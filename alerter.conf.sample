@@ -1,0 +1,12 @@
+[DEFAULT]
+# these only need set if using an alerter type of 'pagerduty'
+
+#pagerduty_domain = <something>
+#service_key = <something>
+
+alerter = collectd
+
+# [test]
+
+# this would log to /var/log/test.log
+# log_logfile = true
