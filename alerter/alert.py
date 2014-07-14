@@ -53,7 +53,7 @@ class PagerDutyAlert(Alert):
                 LOG.error('missing "%s" in config' % value)
                 sys.exit(1)
 
-        self.pager = pygerduty.PagerDuty(CONF['pagerduty_domain'], '')
+        self.pager = pygerduty.PagerDuty(CONF['pagerduty_domain'], 'unused')
 
     def alert(self, severity, component,
               alert_type='Generic', host=None,
