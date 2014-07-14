@@ -135,6 +135,7 @@ def ini_load(file):
 def setup(args):
     olist, alist = parse_args(args)
 
+    # pull in config_file, etc
     for o, a in olist:
         CONF[o] = type_coerce(a)
 
@@ -151,3 +152,7 @@ def setup(args):
 
     if CONF['prog'] in config:
         CONF.update(config[CONF['prog']])
+
+    # and re-apply command-line to ultimately override
+    for o, a in olist:
+        CONF[o] = type_coerce(a)
