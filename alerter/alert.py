@@ -11,6 +11,7 @@ import alerter
 LOG = alerter.log.LOG
 CONF = alerter.config.CONF
 
+
 class Alert(object):
     def __init__(self):
         pass
@@ -42,7 +43,6 @@ class Alert(object):
              description='warning'):
         self.alert('okay', component, alert_type=alert_type,
                    host=host, description=description)
-
 
 
 class PagerDutyAlert(Alert):
@@ -80,12 +80,13 @@ class PagerDutyAlert(Alert):
                 self.pager.create_event(CONF['service_key'],
                                         description,
                                         action,
-                                        None, # details
+                                        None,  # details
                                         incident_key,
                                         client=CONF['prog'])
 
                 # if successful, update the state
                 self.update_status(host, component, severity)
+
 
 class CollectdAlert(Alert):
     def __init__(self):
@@ -98,8 +99,11 @@ class CollectdAlert(Alert):
             host = socket.gethostname()
 
         if not self.should_suppress(host, component, severity):
-            sys.stdout.write('PUTNOTIF message="%s" severity=%s time=%d host=%s\n' % (
-                description, severity, int(time.time()), host))
+            sys.stdout.write('PUTNOTIF message="%s" severity=%s time=%d'
+                             ' host=%s\n' % (description,
+                                             severity,
+                                             int(time.time()),
+                                             host))
             sys.stdout.flush()
 
             self.update_status(host, component, severity)
@@ -109,9 +113,9 @@ if not 'alerter' in CONF:
     sys.exit(1)
 
 if CONF['alerter'].lower() == 'collectd':
-    ALERTER=CollectdAlert()
+    ALERTER = CollectdAlert()
 elif CONF['alerter'].lower() == 'pagerduty':
-    ALERTER=PagerDutyAlert()
+    ALERTER = PagerDutyAlert()
 else:
     LOG.error('invalid "alerter" type in config')
     sys.exit(1)
