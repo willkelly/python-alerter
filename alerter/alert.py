@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import pygerduty
 import socket
 import time
 import sys
@@ -122,6 +121,7 @@ if not 'alerter' in CONF:
 if CONF['alerter'].lower() == 'collectd':
     ALERTER = CollectdAlert()
 elif CONF['alerter'].lower() == 'pagerduty':
+    import pygerduty
     ALERTER = PagerDutyAlert()
 else:
     LOG.error('invalid "alerter" type in config')
