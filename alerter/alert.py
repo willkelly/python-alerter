@@ -11,9 +11,10 @@ import alerter
 LOG = alerter.log.LOG
 CONF = alerter.config.CONF
 
+
 class Alert(object):
     def __init__(self):
-        pass
+        self.last_severities = {}
 
     # severity: failure, warning, okay
     def alert(self, severity, component,
@@ -21,12 +22,19 @@ class Alert(object):
               description='<unknown>'):
         pass
 
-    # could keep states of these, and edge-detect notifications
     def should_suppress(self, host, component, severity):
+        # only alert on state transitions or restarts
+        if self.last_status(host, component) == severity:
+            return True
         return False
 
+    def last_status(self, host, component):
+        # we return "new" here if the item is not in the dict so we
+        # will always send a message on restart.
+        return self.last_severities.get((host, component), "new")
+
     def update_status(self, host, component, severity):
-        pass
+        self.last_severities[(host, component)] = severity
 
     def failure(self, component, alert_type='Generic', host=None,
                 description=None):
@@ -42,7 +50,6 @@ class Alert(object):
              description='warning'):
         self.alert('okay', component, alert_type=alert_type,
                    host=host, description=description)
-
 
 
 class PagerDutyAlert(Alert):
@@ -80,12 +87,13 @@ class PagerDutyAlert(Alert):
                 self.pager.create_event(CONF['service_key'],
                                         description,
                                         action,
-                                        None, # details
+                                        None,  # details
                                         incident_key,
                                         client=CONF['prog'])
 
                 # if successful, update the state
                 self.update_status(host, component, severity)
+
 
 class CollectdAlert(Alert):
     def __init__(self):
@@ -98,8 +106,11 @@ class CollectdAlert(Alert):
             host = socket.gethostname()
 
         if not self.should_suppress(host, component, severity):
-            sys.stdout.write('PUTNOTIF message="%s" severity=%s time=%d host=%s\n' % (
-                description, severity, int(time.time()), host))
+            sys.stdout.write('PUTNOTIF message="%s" severity=%s time=%d'
+                             ' host=%s\n' % (description,
+                                             severity,
+                                             int(time.time()),
+                                             host))
             sys.stdout.flush()
 
             self.update_status(host, component, severity)
@@ -109,9 +120,9 @@ if not 'alerter' in CONF:
     sys.exit(1)
 
 if CONF['alerter'].lower() == 'collectd':
-    ALERTER=CollectdAlert()
+    ALERTER = CollectdAlert()
 elif CONF['alerter'].lower() == 'pagerduty':
-    ALERTER=PagerDutyAlert()
+    ALERTER = PagerDutyAlert()
 else:
     LOG.error('invalid "alerter" type in config')
     sys.exit(1)
