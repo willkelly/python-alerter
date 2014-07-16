@@ -14,7 +14,7 @@ CONF = alerter.config.CONF
 
 class Alert(object):
     def __init__(self):
-        pass
+        self.last_severities = {}
 
     # severity: failure, warning, okay
     def alert(self, severity, component,
@@ -22,12 +22,19 @@ class Alert(object):
               description='<unknown>'):
         pass
 
-    # could keep states of these, and edge-detect notifications
     def should_suppress(self, host, component, severity):
+        # only alert on state transitions or restarts
+        if self.last_status(host, component) == severity:
+            return True
         return False
 
+    def last_status(self, host, component):
+        # we return "new" here if the item is not in the dict so we
+        # will always send a message on restart.
+        return self.last_severities.get((host, component), "new")
+
     def update_status(self, host, component, severity):
-        pass
+        self.last_severities[(host, component)] = severity
 
     def failure(self, component, alert_type='Generic', host=None,
                 description=None):
