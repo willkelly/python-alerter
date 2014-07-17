@@ -14,6 +14,7 @@ valid config options:
 
 * log_syslog (default False): should we log to syslog?
 * syslog_facility (default local7): what facility if syslogging?
+* log_alerts (default False): should we log all alerts in addition to alerting?
 * log_logfile (default False): should we log to file?
 * log_dir (default /var/log): base path for logfile if logging to file
 * log_file (default <prog>.log): filename for logfile is logging to file
@@ -23,6 +24,7 @@ valid config options:
 * date_format (default %Y-%m-%dT%H:%M:%S) date format for log
 * config_file (default /etc/alerter.conf) override with --config_file
 * alerter (default collectd) either collectd or pagerduty
+* secondary_alerter (default None) alerter to call when 'alerter' fails.
 * pagerduty_domain subdomain for pagerduty site (xxx.pagerduty.com)
 * service_key apiable pagerduty service key
 
