@@ -3,7 +3,6 @@
 import socket
 import time
 import sys
-import socket
 
 import alerter
 
@@ -12,14 +11,59 @@ CONF = alerter.config.CONF
 
 
 class Alert(object):
-    def __init__(self):
+
+    def __init__(self, secondary=None):
         self.last_severities = {}
+        self.secondary = secondary
+
+    def _alert(self, severity, component,
+               alert_type='Generic', host=None,
+               description='Unknown'):
+        pass
+
+    def _format_alert(self, severity="", component="",
+                      alert_type="", host="", description=""):
+        return """*** ALERT ***
+        Severity: %s
+        Component: %s
+        Alert Type: %s
+        Host: %s
+        Description: %s
+*** END ALERT ***""" % (severity, component, alert_type,
+                        host, description)
 
     # severity: failure, warning, okay
     def alert(self, severity, component,
               alert_type='Generic', host=None,
               description='<unknown>'):
-        pass
+        try:
+            self._alert(severity, component, alert_type, host, description)
+        except Exception:
+            try:
+                if self.secondary is not None:
+                    self.secondary._alert(severity, component, alert_type,
+                                          host, description)
+            except Exception:
+                LOG.error("Failed to alert to secondary alerter:\n"
+                          + self._format_alert(severity,
+                                               component,
+                                               alert_type,
+                                               host,
+                                               description))
+            finally:
+                LOG.error("Failed to alert to primary alerter:\n"
+                          + self._format_alert(severity,
+                                               component,
+                                               alert_type,
+                                               host,
+                                               description))
+        finally:
+            if CONF.get("log_alerts", False):
+                LOG.info(self._format_alert(severity,
+                                            component,
+                                            alert_type,
+                                            host,
+                                            description))
 
     def should_suppress(self, host, component, severity):
         # only alert on state transitions or restarts
@@ -53,6 +97,7 @@ class Alert(object):
 
 class PagerDutyAlert(Alert):
     def __init__(self):
+        import pygerduty
         super(PagerDutyAlert, self).__init__()
         for value in ['pagerduty_domain', 'service_key']:
             if not value in CONF:
@@ -61,10 +106,9 @@ class PagerDutyAlert(Alert):
 
         self.pager = pygerduty.PagerDuty(CONF['pagerduty_domain'], 'unused')
 
-    def alert(self, severity, component,
-              alert_type='Generic', host=None,
-              description='<unknown>'):
-
+    def _alert(self, severity, component,
+               alert_type='Generic', host=None,
+               description='<unknown>'):
         if host is None:
             host = socket.gethostname()
 
@@ -98,9 +142,9 @@ class CollectdAlert(Alert):
     def __init__(self):
         super(CollectdAlert, self).__init__()
 
-    def alert(self, severity, component,
-              alert_type='Generic', host=None,
-              description='<unknown>'):
+    def _alert(self, severity, component,
+               alert_type='Generic', host=None,
+               description='<unknown>'):
         if host is None:
             host = socket.gethostname()
 
@@ -118,11 +162,16 @@ if not 'alerter' in CONF:
     LOG.error('missing "alerter" in config')
     sys.exit(1)
 
-if CONF['alerter'].lower() == 'collectd':
-    ALERTER = CollectdAlert()
-elif CONF['alerter'].lower() == 'pagerduty':
-    import pygerduty
-    ALERTER = PagerDutyAlert()
-else:
+valid_alerters = {"collectd": CollectdAlert,
+                  "pagerduty": PagerDutyAlert}
+
+if CONF['alerter'].lower() not in valid_alerters:
     LOG.error('invalid "alerter" type in config')
     sys.exit(1)
+ALERTER = valid_alerters[CONF['alerter'].lower()]()
+
+if 'secondary_alerter' in CONF:
+    if CONF['secondary_alerter'].lower() in valid_alerters:
+        ALERTER.secondary = valid_alerters[CONF['secondary_alerter'].lower()]()
+    else:
+        LOG.error('invalid "alerter" type in secondary_alerter in config')

@@ -6,6 +6,9 @@
 
 alerter = collectd
 
+#secondary_alerter = pagerduty
+#log_alerts = true
+
 # [test]
 
 # this would log to /var/log/test.log
