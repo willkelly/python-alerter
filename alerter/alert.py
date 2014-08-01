@@ -3,6 +3,7 @@
 import socket
 import time
 import sys
+from traceback import format_exc
 
 import alerter
 
@@ -43,13 +44,14 @@ class Alert(object):
                 if self.secondary is not None:
                     self.secondary._alert(severity, component, alert_type,
                                           host, description)
-            except Exception:
+            except Exception, e:
                 LOG.error("Failed to alert to secondary alerter:\n"
                           + self._format_alert(severity,
                                                component,
                                                alert_type,
                                                host,
-                                               description))
+                                               description)
+                          + "with exception %s" % format_exc())
             finally:
                 LOG.error("Failed to alert to primary alerter:\n"
                           + self._format_alert(severity,
